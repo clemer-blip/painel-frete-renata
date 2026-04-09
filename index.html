@@ -248,6 +248,21 @@
     .field-base:focus { border-color: var(--green-700); box-shadow: 0 0 0 3px rgba(26,92,58,0.1); }
 
     .label-sm { font-size: 11px; font-weight: 600; color: #5a7a65; margin-bottom: 5px; display: block; }
+
+    /* ── Validação ──────────────────────── */
+    .field-error {
+      border-color: #fca5a5 !important;
+      background: #fff5f5 !important;
+      box-shadow: 0 0 0 3px rgba(239,68,68,0.12) !important;
+    }
+    .nome-input.field-error {
+      border-color: #fca5a5 !important;
+      background: #fff5f5 !important;
+    }
+    @keyframes shake {
+      0%,100%{transform:translateX(0)} 20%{transform:translateX(-5px)} 60%{transform:translateX(5px)}
+    }
+    .shake { animation: shake 0.3s ease; }
   </style>
 </head>
 <body>
@@ -362,7 +377,7 @@
             <div class="gc-bar"></div>
             <span class="gc-badge">G3</span>
             <p class="gc-title">Padrão</p>
-            <p class="gc-products">Jogo de Cama 2/3pcs · Capa de Edredom · Pillow Top</p>
+            <p class="gc-products">Jogo de Cama · Capa de Edredom · Pillow Top</p>
             <p class="gc-weight">≈ 2,00 kg</p>
             <div class="gc-add">
               <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
@@ -375,7 +390,7 @@
             <div class="gc-bar"></div>
             <span class="gc-badge">G4</span>
             <p class="gc-title">Volumoso <span style="font-size:10px;color:#8faa96;">⚠ cubado</span></p>
-            <p class="gc-products">Jogo de Cama 4–6pcs · Colcha · Jogo de Toalhas · Travesseiro</p>
+            <p class="gc-products">Jogo de Cama · Colcha · Jogo de Toalhas · Travesseiro</p>
             <p class="gc-weight">≈ 3,50 kg</p>
             <div class="gc-add">
               <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
@@ -472,6 +487,10 @@
         </div>
 
         <div id="alertasBox" style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px;"></div>
+
+        <div id="erroNegoc" style="display:none; background:#fff5f5; border:1px solid #fca5a5; border-radius:10px; padding:10px 14px; font-size:12.5px; color:#7f1d1d; margin-bottom:10px;">
+          <strong>Campos obrigatórios não preenchidos:</strong> <span id="erroNegocTxt"></span>
+        </div>
 
         <button class="btn-msg" id="btnGerarMsg">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -588,11 +607,11 @@
           </div>
           <div style="display:flex; align-items:flex-start; gap:8px;">
             <span class="tag-group tg-g3">G3</span>
-            <p style="font-size:11.5px; color:#4a6654; line-height:1.45;">Padrão (2,00 kg) — Jogo de Cama 2/3pcs, Capa Edredom, Pillow Top</p>
+            <p style="font-size:11.5px; color:#4a6654; line-height:1.45;">Padrão (2,00 kg) — Jogo de Cama, Capa de Edredom, Pillow Top</p>
           </div>
           <div style="display:flex; align-items:flex-start; gap:8px;">
             <span class="tag-group tg-g4">G4</span>
-            <p style="font-size:11.5px; color:#4a6654; line-height:1.45;">Volumoso (3,50 kg) — Jogo 4–6pcs, Colcha, Jogo Toalhas, Travesseiro ⚠️</p>
+            <p style="font-size:11.5px; color:#4a6654; line-height:1.45;">Volumoso (3,50 kg) — Jogo de Cama, Colcha, Jogo de Toalhas, Travesseiro ⚠️</p>
           </div>
           <div style="display:flex; align-items:flex-start; gap:8px;">
             <span class="tag-group tg-g5">G5</span>
@@ -881,6 +900,48 @@ function renderResumo() {
 
 // ─── MENSAGEM ────────────────────────────────────────────────
 function gerarMensagem() {
+  // ── Validação obrigatória para negociação especial ──
+  const elNome = document.getElementById('inputNomeCliente');
+  const elTel  = document.getElementById('inputTelefone');
+  const erros  = [];
+
+  // Nome da cliente
+  if (!elNome.value.trim()) {
+    elNome.classList.add('field-error');
+    erros.push('nome da cliente');
+  } else {
+    elNome.classList.remove('field-error');
+  }
+
+  // Telefone
+  if (!elTel.value.trim()) {
+    elTel.classList.add('field-error');
+    erros.push('telefone');
+  } else {
+    elTel.classList.remove('field-error');
+  }
+
+  // Nome do produto em cada item do carrinho
+  carrinho.forEach(row => {
+    const input = document.querySelector(`[data-field="nome"][data-id="${row.id}"]`);
+    if (!row.nome.trim()) {
+      erros.push(`nome do produto (linha ${carrinho.indexOf(row) + 1})`);
+      if (input) input.classList.add('field-error');
+    } else {
+      if (input) input.classList.remove('field-error');
+    }
+  });
+
+  const erroBox = document.getElementById('erroNegoc');
+  if (erros.length > 0) {
+    document.getElementById('erroNegocTxt').textContent = erros.join(', ');
+    erroBox.style.display = '';
+    erroBox.classList.add('shake');
+    setTimeout(() => erroBox.classList.remove('shake'), 400);
+    return;
+  }
+  erroBox.style.display = 'none';
+
   const rk = document.getElementById('selectRegiao').value;
   const valor = carrinho.reduce((s, r) => s + (r.valor || 0), 0);
   const reg = rk ? REGIOES[rk] : null;
@@ -941,6 +1002,14 @@ document.querySelectorAll('.group-card').forEach(card => {
   });
 });
 
+// limpa erro ao digitar nos campos do cabeçalho
+document.getElementById('inputNomeCliente').addEventListener('input', function() {
+  if (this.value.trim()) this.classList.remove('field-error');
+});
+document.getElementById('inputTelefone').addEventListener('input', function() {
+  if (this.value.trim()) this.classList.remove('field-error');
+});
+
 // ⚡ FIX: "nome" e "valor" não re-renderizam — mantém o foco no campo
 document.getElementById('carrinhoBody').addEventListener('input', e => {
   const field = e.target.dataset.field;
@@ -948,7 +1017,11 @@ document.getElementById('carrinhoBody').addEventListener('input', e => {
   if (!field || isNaN(id)) return;
   const row = carrinho.find(r => r.id === id);
   if (!row) return;
-  if (field === 'nome')  { row.nome  = e.target.value; return; }
+  if (field === 'nome')  {
+    row.nome = e.target.value;
+    if (row.nome.trim()) e.target.classList.remove('field-error');
+    return;
+  }
   if (field === 'valor') {
     row.valor = parseFloat(e.target.value) || 0;
     // atualiza o display de valor total sem re-renderizar a tabela
