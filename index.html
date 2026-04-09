@@ -444,18 +444,31 @@
         <p class="section-label" style="margin-bottom:14px;">Resumo da cotação</p>
 
         <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px;">
+          <!-- linha 1 -->
           <div class="metric-card mc-default">
             <p class="metric-label">Total de itens</p>
             <p class="metric-val" id="resItens">—</p>
           </div>
           <div class="metric-card mc-rose">
-            <p class="metric-label" style="color: var(--pink-dark);">Frete estimado</p>
+            <p class="metric-label" style="color:var(--pink-dark);">Frete estimado</p>
             <p class="metric-val pink" id="resFrete">—</p>
           </div>
           <div class="metric-card mc-default">
             <p class="metric-label">Peso total</p>
             <p class="metric-val" id="resPeso">—</p>
           </div>
+          <!-- linha 2: Pix + Parcelamento (visíveis quando há valor) -->
+          <div class="metric-card" id="mcPix" style="display:none; background:#f0faf5; border-color:#b8dfc8;">
+            <p class="metric-label" style="color:var(--green-700);">Valor com Pix (−5%)</p>
+            <p class="metric-val" style="color:var(--green-700);" id="resPix">—</p>
+            <p id="resPixDesc" style="font-size:11px; color:#6a9070; margin-top:3px;"></p>
+          </div>
+          <div class="metric-card mc-default" id="mcParc" style="display:none;">
+            <p class="metric-label">Parcelamento máx.</p>
+            <p class="metric-val" id="resParcMax">—</p>
+            <p id="resParcVal" style="font-size:11px; color:#6a9070; margin-top:3px;"></p>
+          </div>
+          <div></div><!-- espaço -->
         </div>
 
         <div id="alertasBox" style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px;"></div>
@@ -483,15 +496,15 @@
           <div class="rule-icon">✅</div>
           <div>
             <p class="rule-title">Frete grátis ≥ R$ 499</p>
-            <p class="rule-desc">Somente se o <strong>cliente pedir</strong>. Não oferecer proativamente.</p>
+            <p class="rule-desc">Somente se o <strong>cliente pedir</strong>. Não vale para G5 (Extra Volumoso) nem para Norte e Nordeste.</p>
           </div>
         </div>
 
         <div class="rule-item">
           <div class="rule-icon">💳</div>
           <div>
-            <p class="rule-title">Desconto no Pix</p>
-            <p class="rule-desc">Pagamento via Pix tem condição especial — consultar tabela vigente.</p>
+            <p class="rule-title">Pix — 5% de desconto</p>
+            <p class="rule-desc">Desconto liberado para pagamento via Pix. Calcule automaticamente no simulador.</p>
           </div>
         </div>
 
@@ -499,14 +512,14 @@
           <div class="rule-icon">🤝</div>
           <div>
             <p class="rule-title">Negociação personalizada</p>
-            <p class="rule-desc">Pedido <strong>&gt; R$ 1.500</strong> e cliente resistente: solicitar ao gestor.</p>
+            <p class="rule-desc"><strong>Apenas acima de R$ 1.500.</strong> Abaixo disso seguir regras padrão, sem exceção.</p>
           </div>
         </div>
 
         <div class="rule-item">
           <div class="rule-icon">🚫</div>
           <div>
-            <p class="rule-title">Nordeste e Acre</p>
+            <p class="rule-title">Norte e Nordeste</p>
             <p class="rule-desc">Sem frete grátis em <strong>nenhum valor</strong> para essas regiões.</p>
           </div>
         </div>
@@ -527,6 +540,36 @@
           </div>
         </div>
 
+      </div>
+    </div>
+
+    <!-- Parcelamento -->
+    <div class="card">
+      <div style="padding:16px 18px;">
+        <p class="section-label" style="margin-bottom:12px;">Condições de Parcelamento</p>
+        <p style="font-size:11px; color:#5a7a65; margin-bottom:10px;">Parcela mínima de <strong>R$ 100</strong></p>
+        <div style="display:flex; flex-direction:column; gap:0;">
+
+          <div style="display:grid; grid-template-columns:1fr auto; align-items:center; padding:8px 0; border-bottom:1px solid #eef2f0;">
+            <p style="font-size:12.5px; color:#1a2e24; font-weight:600;">Até R$ 999</p>
+            <span style="font-size:12.5px; font-weight:800; color:var(--green-700);">máx 5×</span>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr auto; align-items:center; padding:8px 0; border-bottom:1px solid #eef2f0;">
+            <div>
+              <p style="font-size:12.5px; color:#1a2e24; font-weight:600;">R$ 1.000 – R$ 1.500</p>
+            </div>
+            <span style="font-size:12.5px; font-weight:800; color:var(--green-700);">máx 7×</span>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr auto; align-items:center; padding:8px 0;">
+            <div>
+              <p style="font-size:12.5px; color:#1a2e24; font-weight:600;">R$ 1.500 – R$ 2.000</p>
+            </div>
+            <span style="font-size:12.5px; font-weight:800; color:var(--green-700);">máx 10×</span>
+          </div>
+
+        </div>
       </div>
     </div>
 
@@ -635,6 +678,13 @@ const REGIOES = {
   'norte-ext': { label:'Norte Extremo (AM/AC/RR/AP)',   base:22.0, min:32.0, multi:14.0, nordeste:false, norte:true,  acre:true  },
 };
 const FRETE_GRATIS = 499, VALOR_NEGOC = 1500, QTD_MAX = 8, ACRESCIMO = 1.30;
+const PIX_DESCONTO = 0.05; // 5%
+
+function calcMaxParcelas(valor) {
+  if (valor <= 0) return 0;
+  let max = valor >= 1500 ? 10 : valor >= 1000 ? 7 : 5;
+  return Math.min(max, Math.floor(valor / 100)); // parcela mínima R$100
+}
 
 // ─── ESTADO ──────────────────────────────────────────────────
 let carrinho = [], idSeq = 0;
@@ -729,13 +779,16 @@ function render() {
 }
 
 function renderResumo() {
-  const rk = document.getElementById('selectRegiao').value;
+  const rk   = document.getElementById('selectRegiao').value;
   const valor = carrinho.reduce((s, r) => s + (r.valor || 0), 0);
-  // atualiza o display
+
+  // display valor total
   document.getElementById('inputValor').textContent = valor.toLocaleString('pt-BR');
   document.getElementById('resumoBox').style.display = '';
 
+  // totais do carrinho
   let qtdTotal = 0, freteTotal = 0, pesoTotal = 0, temConsultar = false;
+  const temG5 = carrinho.some(r => r.grupoKey === 'g5');
   carrinho.forEach(row => {
     qtdTotal += row.qtd;
     if (row.qtd > QTD_MAX) { temConsultar = true; return; }
@@ -746,13 +799,37 @@ function renderResumo() {
     }
   });
 
-  document.getElementById('resItens').textContent  = qtdTotal + (qtdTotal === 1 ? ' item' : ' itens');
-  document.getElementById('resFrete').textContent  = rk && !temConsultar ? moeda(freteTotal) : '—';
-  document.getElementById('resPeso').textContent   = pesoTotal > 0 ? pesoTotal.toFixed(2) + ' kg' : '—';
+  // métricas linha 1
+  document.getElementById('resItens').textContent = qtdTotal + (qtdTotal === 1 ? ' item' : ' itens');
+  document.getElementById('resFrete').textContent = rk && !temConsultar ? moeda(freteTotal) : '—';
+  document.getElementById('resPeso').textContent  = pesoTotal > 0 ? pesoTotal.toFixed(2) + ' kg' : '—';
 
+  // métricas linha 2: Pix + Parcelamento
+  const mcPix  = document.getElementById('mcPix');
+  const mcParc = document.getElementById('mcParc');
+  if (valor > 0) {
+    const valorPix   = Math.round(valor * (1 - PIX_DESCONTO));
+    const economia   = valor - valorPix;
+    const maxParc    = calcMaxParcelas(valor);
+    const valParc    = maxParc > 0 ? Math.ceil(valor / maxParc) : valor;
+
+    mcPix.style.display = '';
+    document.getElementById('resPix').textContent    = moeda(valorPix);
+    document.getElementById('resPixDesc').textContent = `economia de ${moeda(economia)}`;
+
+    mcParc.style.display = '';
+    document.getElementById('resParcMax').textContent = `até ${maxParc}×`;
+    document.getElementById('resParcVal').textContent  = `de R$ ${valParc.toLocaleString('pt-BR')}`;
+  } else {
+    mcPix.style.display = mcParc.style.display = 'none';
+  }
+
+  // botão de negociação — só visível acima de R$1.500
+  document.getElementById('btnGerarMsg').style.display = valor >= VALOR_NEGOC ? '' : 'none';
+
+  // alertas
   const box = document.getElementById('alertasBox');
   box.innerHTML = '';
-
   function pill(cls, icon, html) {
     const d = document.createElement('div');
     d.className = 'alert-pill ' + cls;
@@ -767,22 +844,39 @@ function renderResumo() {
 
   const reg = REGIOES[rk];
 
+  // negociação: apenas acima de R$1.500
   if (valor >= VALOR_NEGOC)
-    pill('ap-purple', '🤝', `Pedido de <strong>${moeda(valor)}</strong> — se o cliente não fechar por desconto, gere a mensagem abaixo para o gestor.`);
-
-  const semGratis = reg.nordeste || reg.acre;
-  if (semGratis)
-    pill('ap-red', '🚫', `<strong>Sem frete grátis</strong> para ${reg.label} — regra sem exceção.`);
-  else if (valor >= FRETE_GRATIS)
-    pill('ap-green', '✅', `Frete grátis disponível (${moeda(valor)} ≥ ${moeda(FRETE_GRATIS)}). Aplicar <strong>somente se o cliente pedir</strong>.`);
+    pill('ap-purple', '🤝', `Pedido de <strong>${moeda(valor)}</strong> — elegível para negociação personalizada. Use o botão abaixo para solicitar ao gestor.`);
   else if (valor > 0)
-    pill('ap-amber', '💡', `Faltam <strong>${moeda(FRETE_GRATIS - valor)}</strong> para frete grátis. Frete de <strong>${moeda(freteTotal)}</strong> a repassar ao cliente.`);
+    pill('ap-neutral', '📋', `Pedido de <strong>${moeda(valor)}</strong> — abaixo de R$ 1.500, seguir as regras padrão de venda sem exceção.`);
 
+  // frete grátis: bloqueia Norte + Nordeste + G5
+  const semGratis = reg.nordeste || reg.norte;
+  const g5bloq    = temG5;
+
+  if (semGratis) {
+    pill('ap-red', '🚫', `<strong>Frete grátis não disponível</strong> para ${reg.label} — regra sem exceção.`);
+  } else if (g5bloq && valor >= FRETE_GRATIS) {
+    pill('ap-amber', '⚠️', `Pedido contém itens <strong>G5 (Extra Volumoso)</strong> — frete grátis <strong>não se aplica</strong> a esse grupo. Frete a repassar: <strong>${moeda(freteTotal)}</strong>.`);
+  } else if (valor >= FRETE_GRATIS) {
+    pill('ap-green', '✅', `Frete grátis disponível (${moeda(valor)} ≥ ${moeda(FRETE_GRATIS)}). Aplicar <strong>somente se o cliente pedir</strong>.`);
+  } else if (valor > 0) {
+    pill('ap-amber', '💡', `Faltam <strong>${moeda(FRETE_GRATIS - valor)}</strong> para frete grátis. Frete de <strong>${moeda(freteTotal)}</strong> a repassar ao cliente.`);
+  }
+
+  // Pix
+  if (valor > 0) {
+    const valorPix = Math.round(valor * (1 - PIX_DESCONTO));
+    pill('ap-green', '💳', `Pagamento via <strong>Pix</strong>: 5% de desconto → <strong>${moeda(valorPix)}</strong> (economia de ${moeda(valor - valorPix)}).`);
+  }
+
+  // > 8 itens
   if (temConsultar || qtdTotal > QTD_MAX)
     pill('ap-amber', '📦', `Mais de ${QTD_MAX} itens — consultar time interno para cotação especial.`);
 
+  // Norte: custo-benefício (sem bloquear mais frete grátis, já tratado acima)
   if (reg.norte)
-    pill('ap-slate', '🗺️', `${reg.label}: avaliar custo-benefício de absorver o frete antes de repassar.`);
+    pill('ap-slate', '🗺️', `${reg.label}: avaliar custo-benefício de absorver o frete antes de repassar ao cliente.`);
 }
 
 // ─── MENSAGEM ────────────────────────────────────────────────
@@ -802,13 +896,19 @@ function gerarMensagem() {
     const valorItem = row.valor > 0 ? `  |  Valor: ${moeda(row.valor)}` : '';
     return `• ${nome} (${g.label}) × ${row.qtd}${valorItem}  →  Frete: ${f !== null ? moeda(f) : 'a cotar'}`;
   });
+  const valorPix  = Math.round(valor * (1 - PIX_DESCONTO));
+  const maxParc   = calcMaxParcelas(valor);
+  const valParc   = maxParc > 0 ? Math.ceil(valor / maxParc) : valor;
+  const temG5msg  = carrinho.some(r => r.grupoKey === 'g5');
+
   const alertas = [];
   if (reg) {
-    if (reg.nordeste || reg.acre) alertas.push('⚠️ Região sem frete grátis (Nordeste / Acre)');
+    if (reg.nordeste || reg.norte) alertas.push('🚫 Região sem frete grátis (Norte / Nordeste)');
+    if (temG5msg) alertas.push('⚠️ Pedido contém G5 (Extra Volumoso) — frete grátis não se aplica');
     if (qtdTotal > QTD_MAX) alertas.push('⚠️ Pedido acima de 8 itens — cotação especial necessária');
-    if (reg.norte) alertas.push('⚠️ Região Norte — avaliar absorção do frete');
   }
-  if (valor >= VALOR_NEGOC) alertas.push('🤝 Pedido acima de R$ 1.500 — cliente não fechando por desconto');
+  alertas.push(`💳 Pix: ${moeda(valorPix)} (5% de desconto — economia de ${moeda(valor - valorPix)})`);
+  if (maxParc > 0) alertas.push(`💰 Parcelamento: até ${maxParc}× de R$ ${valParc.toLocaleString('pt-BR')} (parcela mín. R$ 100)`);
   const dt = new Date().toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
   const msg = [
     '📋 SOLICITAÇÃO DE NEGOCIAÇÃO ESPECIAL',
