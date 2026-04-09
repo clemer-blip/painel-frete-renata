@@ -316,10 +316,9 @@
           </div>
           <div>
             <label class="label-sm">Valor total do pedido</label>
-            <div style="position:relative;">
-              <span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); font-size:12px; font-weight:700; color:#8faa96;">R$</span>
-              <input id="inputValor" type="number" min="0" step="1" placeholder="0"
-                class="field-base" style="padding-left:32px;" />
+            <div style="position:relative; display:flex; align-items:center; height:40px; border:1.5px solid #d0dcd4; border-radius:10px; background:#f5faf7; padding:0 12px 0 32px;">
+              <span style="position:absolute; left:12px; font-size:12px; font-weight:700; color:#8faa96;">R$</span>
+              <span id="inputValor" style="font-size:14px; font-weight:800; color:#0f2d1c; letter-spacing:-0.3px;">0</span>
             </div>
           </div>
         </div>
@@ -425,9 +424,10 @@
           <table class="cart-table">
             <thead>
               <tr>
-                <th style="width:35%;">Produto / Referência</th>
+                <th style="width:30%;">Produto / Referência</th>
                 <th>Grupo</th>
                 <th style="text-align:center;">Qtd</th>
+                <th style="text-align:right; padding-right:4px;">Valor (R$)</th>
                 <th style="text-align:right; padding-right:4px;">Frete est.</th>
                 <th style="width:28px;"></th>
               </tr>
@@ -697,6 +697,15 @@ function render() {
         </div>
       </td>
       <td style="text-align:right; padding-right:4px;">
+        <div style="position:relative; display:inline-flex; align-items:center;">
+          <span style="position:absolute; left:7px; font-size:10px; font-weight:700; color:#8faa96; pointer-events:none;">R$</span>
+          <input type="number" min="0" step="1" placeholder="0"
+            class="nome-input" style="text-align:right; width:80px; padding-left:22px; padding-right:6px;"
+            value="${row.valor > 0 ? row.valor : ''}"
+            data-field="valor" data-id="${row.id}" />
+        </div>
+      </td>
+      <td style="text-align:right; padding-right:4px;">
         ${consultar
           ? `<span style="font-size:11.5px; font-weight:700; color:#d97706;">Consultar</span>`
           : frete !== null
@@ -721,7 +730,9 @@ function render() {
 
 function renderResumo() {
   const rk = document.getElementById('selectRegiao').value;
-  const valor = parseFloat(document.getElementById('inputValor').value) || 0;
+  const valor = carrinho.reduce((s, r) => s + (r.valor || 0), 0);
+  // atualiza o display
+  document.getElementById('inputValor').textContent = valor.toLocaleString('pt-BR');
   document.getElementById('resumoBox').style.display = '';
 
   let qtdTotal = 0, freteTotal = 0, pesoTotal = 0, temConsultar = false;
@@ -777,7 +788,7 @@ function renderResumo() {
 // ─── MENSAGEM ────────────────────────────────────────────────
 function gerarMensagem() {
   const rk = document.getElementById('selectRegiao').value;
-  const valor = parseFloat(document.getElementById('inputValor').value) || 0;
+  const valor = carrinho.reduce((s, r) => s + (r.valor || 0), 0);
   const reg = rk ? REGIOES[rk] : null;
   const nomeCliente = document.getElementById('inputNomeCliente').value.trim();
   const telefone    = document.getElementById('inputTelefone').value.trim();
@@ -788,7 +799,8 @@ function gerarMensagem() {
     qtdTotal += row.qtd;
     if (f) freteTotal += f;
     const nome = row.nome.trim() || g.label;
-    return `• ${nome} (${g.label}) × ${row.qtd}  →  ${f !== null ? moeda(f) : 'a cotar'}`;
+    const valorItem = row.valor > 0 ? `  |  Valor: ${moeda(row.valor)}` : '';
+    return `• ${nome} (${g.label}) × ${row.qtd}${valorItem}  →  Frete: ${f !== null ? moeda(f) : 'a cotar'}`;
   });
   const alertas = [];
   if (reg) {
@@ -824,19 +836,27 @@ function gerarMensagem() {
 // ─── EVENTOS ─────────────────────────────────────────────────
 document.querySelectorAll('.group-card').forEach(card => {
   card.addEventListener('click', () => {
-    carrinho.push({ id: idSeq++, nome: '', grupoKey: card.dataset.grupo, qtd: 1 });
+    carrinho.push({ id: idSeq++, nome: '', grupoKey: card.dataset.grupo, qtd: 1, valor: 0 });
     render();
   });
 });
 
-// ⚡ FIX: "nome" não re-renderiza — mantém o foco no campo
+// ⚡ FIX: "nome" e "valor" não re-renderizam — mantém o foco no campo
 document.getElementById('carrinhoBody').addEventListener('input', e => {
   const field = e.target.dataset.field;
   const id = parseInt(e.target.dataset.id);
   if (!field || isNaN(id)) return;
   const row = carrinho.find(r => r.id === id);
   if (!row) return;
-  if (field === 'nome') { row.nome = e.target.value; return; } // só atualiza dados
+  if (field === 'nome')  { row.nome  = e.target.value; return; }
+  if (field === 'valor') {
+    row.valor = parseFloat(e.target.value) || 0;
+    // atualiza o display de valor total sem re-renderizar a tabela
+    const total = carrinho.reduce((s, r) => s + (r.valor || 0), 0);
+    document.getElementById('inputValor').textContent = total.toLocaleString('pt-BR');
+    renderResumo();
+    return;
+  }
   render();
 });
 
@@ -856,7 +876,16 @@ document.getElementById('carrinhoBody').addEventListener('click', e => {
 
 document.getElementById('btnLimpar').addEventListener('click', () => { carrinho = []; render(); });
 document.getElementById('selectRegiao').addEventListener('change', render);
-document.getElementById('inputValor').addEventListener('input', renderResumo);
+
+// Máscara telefone BR: (XX) XXXXX-XXXX ou (XX) XXXX-XXXX
+document.getElementById('inputTelefone').addEventListener('input', function() {
+  let v = this.value.replace(/\D/g, '').substring(0, 11);
+  if (v.length === 0)       { this.value = ''; return; }
+  if (v.length <= 2)        { this.value = '(' + v; return; }
+  if (v.length <= 6)        { this.value = '(' + v.slice(0,2) + ') ' + v.slice(2); return; }
+  if (v.length <= 10)       { this.value = '(' + v.slice(0,2) + ') ' + v.slice(2,6) + '-' + v.slice(6); return; }
+  /* 11 dígitos — celular */  this.value = '(' + v.slice(0,2) + ') ' + v.slice(2,7) + '-' + v.slice(7);
+});
 document.getElementById('btnGerarMsg').addEventListener('click', gerarMensagem);
 
 const closeModal = () => document.getElementById('modal-overlay').classList.remove('open');
