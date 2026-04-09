@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cotação de Frete — Casa Renata</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f4; }
+
+    .group-card {
+      cursor: pointer;
+      border-left: 4px solid;
+      transition: background 0.15s, box-shadow 0.15s;
+      user-select: none;
+    }
+    .group-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.10); }
+    .group-card:active { transform: scale(0.98); }
+
+    .card-g1 { border-left-color: #639922; }
+    .card-g2 { border-left-color: #185FA5; }
+    .card-g3 { border-left-color: #534AB7; }
+    .card-g4 { border-left-color: #BA7517; }
+    .card-g5 { border-left-color: #A32D2D; }
+
+    .badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; }
+    .b-g1 { background:#e8f5e0; color:#3a6b0e; }
+    .b-g2 { background:#dbeafe; color:#1e4d8c; }
+    .b-g3 { background:#ede9fe; color:#3b289a; }
+    .b-g4 { background:#fef3c7; color:#92400e; }
+    .b-g5 { background:#fee2e2; color:#7f1d1d; }
+
+    .counter-badge {
+      position: absolute; top: -6px; right: -6px;
+      background: #e11d48; color: #fff;
+      font-size: 11px; font-weight: 700;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid #fff;
+    }
+
+    .qty-btn {
+      width: 26px; height: 26px;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+      background: #fff;
+      font-size: 16px; font-weight: 600;
+      line-height: 1;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.1s;
+    }
+    .qty-btn:hover { background: #f3f4f6; }
+
+    tr.row-enter { animation: fadeIn 0.18s ease; }
+    @keyframes fadeIn { from { opacity:0; transform: translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+
+    /* Modal */
+    #modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 50;
+      align-items: center; justify-content: center;
+    }
+    #modal-overlay.open { display: flex; }
+    #modal-box { max-width: 520px; width: 95%; }
+
+    textarea { resize: none; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="bg-white border-b border-stone-200">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
+    <div class="w-8 h-8 rounded-lg bg-rose-600 flex items-center justify-center text-white font-bold text-sm">R</div>
+    <div>
+      <p class="text-base font-bold text-gray-900 leading-tight">Casa Renata — Cotação de Frete</p>
+      <p class="text-xs text-gray-400">Time de vendas · CD Goiânia</p>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 py-5 grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+  <!-- ============================================================
+       COL ESQUERDA (2/3): SIMULADOR
+  ============================================================ -->
+  <div class="lg:col-span-2 flex flex-col gap-4">
+
+    <!-- Configurações -->
+    <div class="bg-white rounded-xl border border-stone-200 p-4">
+      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Configurar cotação</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs text-gray-500 mb-1 font-medium">Região de destino</label>
+          <select id="selectRegiao"
+            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:border-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-100">
+            <option value="">Selecione a região...</option>
+            <option value="co">Centro-Oeste — GO / DF / MT / MS</option>
+            <option value="sp-cap">Capital SP</option>
+            <option value="sp-int">Interior SP</option>
+            <option value="sudeste">Sudeste — RJ / MG / ES</option>
+            <option value="sul">Sul — PR / SC / RS</option>
+            <option value="ne">Nordeste — BA / PE / CE / SE / AL</option>
+            <option value="ne-ext">Nordeste Extremo — MA / PI / RN / PB</option>
+            <option value="norte">Norte — PA / TO / RO</option>
+            <option value="norte-ext">Norte Extremo — AM / AC / RR / AP</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500 mb-1 font-medium">Valor total do pedido (R$)</label>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-semibold">R$</span>
+            <input id="inputValor" type="number" min="0" step="1" placeholder="0"
+              class="w-full border border-gray-200 rounded-lg pl-8 pr-3 py-2 text-sm focus:border-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-100" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seletor de grupos -->
+    <div class="bg-white rounded-xl border border-stone-200 p-4">
+      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Adicionar ao pedido</p>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="grupoCards">
+
+        <div class="group-card card-g1 bg-white rounded-lg p-3 border border-stone-200 relative" data-grupo="g1">
+          <div class="counter-badge hidden" id="cnt-g1">0</div>
+          <span class="badge b-g1 mb-1.5">G1 — Leve</span>
+          <p class="text-xs text-gray-500 leading-relaxed">Fronha · Toalha de Rosto · Tecido (metro) · Tapete pequeno</p>
+          <p class="text-xs text-gray-400 mt-1.5">≈ 0,50 kg</p>
+          <div class="mt-2 flex items-center gap-1 text-green-700 text-xs font-semibold">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            Adicionar
+          </div>
+        </div>
+
+        <div class="group-card card-g2 bg-white rounded-lg p-3 border border-stone-200 relative" data-grupo="g2">
+          <div class="counter-badge hidden" id="cnt-g2">0</div>
+          <span class="badge b-g2 mb-1.5">G2 — Médio</span>
+          <p class="text-xs text-gray-500 leading-relaxed">Lençol · Virol · Roupão · Toalha de Banho</p>
+          <p class="text-xs text-gray-400 mt-1.5">≈ 1,10 kg</p>
+          <div class="mt-2 flex items-center gap-1 text-blue-700 text-xs font-semibold">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            Adicionar
+          </div>
+        </div>
+
+        <div class="group-card card-g3 bg-white rounded-lg p-3 border border-stone-200 relative" data-grupo="g3">
+          <div class="counter-badge hidden" id="cnt-g3">0</div>
+          <span class="badge b-g3 mb-1.5">G3 — Padrão</span>
+          <p class="text-xs text-gray-500 leading-relaxed">Jogo de Cama 2/3pcs · Capa de Edredom · Pillow Top</p>
+          <p class="text-xs text-gray-400 mt-1.5">≈ 2,00 kg</p>
+          <div class="mt-2 flex items-center gap-1 text-purple-700 text-xs font-semibold">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            Adicionar
+          </div>
+        </div>
+
+        <div class="group-card card-g4 bg-white rounded-lg p-3 border border-stone-200 relative" data-grupo="g4">
+          <div class="counter-badge hidden" id="cnt-g4">0</div>
+          <span class="badge b-g4 mb-1.5">G4 — Volumoso</span>
+          <p class="text-xs text-gray-500 leading-relaxed">Jogo de Cama 4/5/6pcs · Colcha · Jogo de Toalhas · Travesseiro</p>
+          <p class="text-xs text-gray-400 mt-1.5">≈ 3,50 kg <span class="text-amber-600 font-semibold">· cubado domina</span></p>
+          <div class="mt-2 flex items-center gap-1 text-amber-700 text-xs font-semibold">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            Adicionar
+          </div>
+        </div>
+
+        <div class="group-card card-g5 bg-white rounded-lg p-3 border border-stone-200 relative" data-grupo="g5">
+          <div class="counter-badge hidden" id="cnt-g5">0</div>
+          <span class="badge b-g5 mb-1.5">G5 — Extra Volumoso</span>
+          <p class="text-xs text-gray-500 leading-relaxed">Edredom · Coberdrom · Jogo 6pcs King</p>
+          <p class="text-xs text-gray-400 mt-1.5">≈ 6,50 kg <span class="text-red-600 font-semibold">· cubado domina</span></p>
+          <div class="mt-2 flex items-center gap-1 text-red-700 text-xs font-semibold">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            Adicionar
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Carrinho -->
+    <div class="bg-white rounded-xl border border-stone-200 p-4">
+      <div class="flex items-center justify-between mb-3">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Itens do pedido</p>
+        <button id="btnLimpar"
+          class="text-xs text-gray-400 hover:text-red-500 transition-colors hidden">
+          Limpar tudo
+        </button>
+      </div>
+
+      <p id="msgVazia" class="text-center text-sm text-gray-400 py-6">
+        Selecione os grupos acima para adicionar itens.
+      </p>
+
+      <div id="carrinhoWrap" class="hidden overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-gray-100">
+              <th class="text-left text-xs text-gray-400 font-semibold pb-2 pr-3">Produto</th>
+              <th class="text-left text-xs text-gray-400 font-semibold pb-2 pr-3">Grupo</th>
+              <th class="text-center text-xs text-gray-400 font-semibold pb-2 pr-3">Qtd</th>
+              <th class="text-right text-xs text-gray-400 font-semibold pb-2 pr-2">Frete est.</th>
+              <th class="w-6"></th>
+            </tr>
+          </thead>
+          <tbody id="carrinhoBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Resultado -->
+    <div id="resumoBox" class="bg-white rounded-xl border border-stone-200 p-4 hidden">
+      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Resumo da cotação</p>
+
+      <div class="grid grid-cols-3 gap-3 mb-4">
+        <div class="rounded-lg bg-stone-50 border border-stone-100 px-3 py-2.5">
+          <p class="text-xs text-gray-400 mb-0.5">Total de itens</p>
+          <p id="resItens" class="text-lg font-bold text-gray-800">—</p>
+        </div>
+        <div class="rounded-lg bg-stone-50 border border-stone-100 px-3 py-2.5">
+          <p class="text-xs text-gray-400 mb-0.5">Frete estimado</p>
+          <p id="resFrete" class="text-lg font-bold text-rose-600">—</p>
+        </div>
+        <div class="rounded-lg bg-stone-50 border border-stone-100 px-3 py-2.5">
+          <p class="text-xs text-gray-400 mb-0.5">Peso total</p>
+          <p id="resPeso" class="text-lg font-bold text-gray-800">—</p>
+        </div>
+      </div>
+
+      <div id="alertasBox" class="flex flex-col gap-1.5 mb-4"></div>
+
+      <button id="btnGerarMsg"
+        class="w-full flex items-center justify-center gap-2 border border-gray-200 hover:border-rose-300 hover:bg-rose-50 text-gray-700 hover:text-rose-700 rounded-lg py-2.5 text-sm font-medium transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+        </svg>
+        Gerar mensagem para o gestor
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       COL DIREITA (1/3): REGRAS
+  ============================================================ -->
+  <aside class="flex flex-col gap-4">
+
+    <div class="bg-white rounded-xl border border-stone-200 p-4">
+      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Regras comerciais</p>
+      <ul class="flex flex-col gap-2.5 text-sm text-gray-700">
+
+        <li class="flex items-start gap-2 pb-2.5 border-b border-stone-100">
+          <span class="text-green-600 font-bold text-base leading-none mt-0.5">✓</span>
+          <div>
+            <p class="font-semibold text-gray-800">Frete grátis ≥ R$ 499</p>
+            <p class="text-xs text-gray-500 mt-0.5">Aplicar <strong>somente se o cliente pedir</strong>. Não oferecer proativamente.</p>
+          </div>
+        </li>
+
+        <li class="flex items-start gap-2 pb-2.5 border-b border-stone-100">
+          <span class="text-gray-400 text-base leading-none mt-0.5">💳</span>
+          <div>
+            <p class="font-semibold text-gray-800">Desconto no Pix</p>
+            <p class="text-xs text-gray-500 mt-0.5">Pagamento via Pix tem condição especial — consultar tabela vigente.</p>
+          </div>
+        </li>
+
+        <li class="flex items-start gap-2 pb-2.5 border-b border-stone-100">
+          <span class="text-gray-400 text-base leading-none mt-0.5">🤝</span>
+          <div>
+            <p class="font-semibold text-gray-800">Negociação personalizada</p>
+            <p class="text-xs text-gray-500 mt-0.5">Pedido acima de <strong>R$ 1.500</strong> e cliente resistente a desconto: solicitar negociação ao gestor.</p>
+          </div>
+        </li>
+
+        <li class="flex items-start gap-2 pb-2.5 border-b border-stone-100">
+          <span class="text-gray-400 text-base leading-none mt-0.5">🚫</span>
+          <div>
+            <p class="font-semibold text-gray-800">Nordeste e Acre</p>
+            <p class="text-xs text-gray-500 mt-0.5">Sem frete grátis em nenhum valor para essas regiões.</p>
+          </div>
+        </li>
+
+        <li class="flex items-start gap-2 pb-2.5 border-b border-stone-100">
+          <span class="text-gray-400 text-base leading-none mt-0.5">📦</span>
+          <div>
+            <p class="font-semibold text-gray-800">Acima de 8 itens</p>
+            <p class="text-xs text-gray-500 mt-0.5">Consultar time interno — cotação especial necessária.</p>
+          </div>
+        </li>
+
+        <li class="flex items-start gap-2">
+          <span class="text-gray-400 text-base leading-none mt-0.5">🗺️</span>
+          <div>
+            <p class="font-semibold text-gray-800">Região Norte</p>
+            <p class="text-xs text-gray-500 mt-0.5">Avaliar custo-benefício de absorver o frete antes de repassar ao cliente.</p>
+          </div>
+        </li>
+
+      </ul>
+    </div>
+
+    <div class="bg-white rounded-xl border border-stone-200 p-4">
+      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Sobre os grupos</p>
+      <div class="flex flex-col gap-2 text-xs text-gray-600">
+        <p class="leading-relaxed"><span class="badge b-g1 mr-1">G1</span> Leve (0,50 kg) — Fronha, Toalha de Rosto, Tecido, Tapete pequeno</p>
+        <p class="leading-relaxed"><span class="badge b-g2 mr-1">G2</span> Médio (1,10 kg) — Lençol, Virol, Roupão, Toalha de Banho</p>
+        <p class="leading-relaxed"><span class="badge b-g3 mr-1">G3</span> Padrão (2,00 kg) — Jogo de Cama 2/3pcs, Capa de Edredom, Pillow Top</p>
+        <p class="leading-relaxed"><span class="badge b-g4 mr-1">G4</span> Volumoso (3,50 kg) — Jogo de Cama 4–6pcs, Colcha, Jogo de Toalhas, Travesseiro ⚠️</p>
+        <p class="leading-relaxed"><span class="badge b-g5 mr-1">G5</span> Extra (6,50 kg) — Edredom, Coberdrom, Jogo 6pcs King ⚠️</p>
+        <p class="text-gray-400 mt-1">⚠️ Peso cubado domina o frete nesses grupos.</p>
+      </div>
+    </div>
+
+  </aside>
+
+</main>
+
+<!-- MODAL: Mensagem para o gestor -->
+<div id="modal-overlay">
+  <div id="modal-box" class="bg-white rounded-2xl shadow-2xl border border-stone-200 p-6">
+    <div class="flex items-center justify-between mb-4">
+      <p class="font-bold text-gray-900">Mensagem para o gestor</p>
+      <button id="modalFechar" class="text-gray-400 hover:text-gray-700 transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <textarea id="msgTexto" rows="16"
+      class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-mono text-gray-800 bg-stone-50 focus:outline-none focus:border-rose-300"
+      readonly></textarea>
+    <div class="flex gap-2 mt-3">
+      <button id="btnCopiar"
+        class="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
+        </svg>
+        <span id="btnCopiarTxt">Copiar mensagem</span>
+      </button>
+      <button id="modalFechar2"
+        class="px-5 border border-gray-200 text-sm text-gray-600 font-medium rounded-xl hover:bg-gray-50 transition-colors">
+        Fechar
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DADOS ───────────────────────────────────────────────────
+const GRUPOS = {
+  g1: { label: 'G1 — Leve',           labelCurto: 'Leve',         pc: 0.50 },
+  g2: { label: 'G2 — Médio',          labelCurto: 'Médio',        pc: 1.10 },
+  g3: { label: 'G3 — Padrão',         labelCurto: 'Padrão',       pc: 2.00 },
+  g4: { label: 'G4 — Volumoso',       labelCurto: 'Volumoso',     pc: 3.50 },
+  g5: { label: 'G5 — Extra Volumoso', labelCurto: 'Extra',        pc: 6.50 },
+};
+
+const REGIOES = {
+  'co':        { label: 'Centro-Oeste (GO/DF/MT/MS)',     base:8.0,  min:10.0, multi:5.0,  nordeste:false, norte:false, acre:false },
+  'sp-cap':    { label: 'Capital SP',                      base:8.0,  min:12.0, multi:5.5,  nordeste:false, norte:false, acre:false },
+  'sp-int':    { label: 'Interior SP',                     base:9.0,  min:13.0, multi:6.0,  nordeste:false, norte:false, acre:false },
+  'sudeste':   { label: 'Sudeste (RJ/MG/ES)',              base:10.0, min:14.0, multi:6.5,  nordeste:false, norte:false, acre:false },
+  'sul':       { label: 'Sul (PR/SC/RS)',                  base:12.0, min:16.0, multi:7.0,  nordeste:false, norte:false, acre:false },
+  'ne':        { label: 'Nordeste (BA/PE/CE/SE/AL)',       base:14.0, min:18.0, multi:8.0,  nordeste:true,  norte:false, acre:false },
+  'ne-ext':    { label: 'Nordeste Extremo (MA/PI/RN/PB)',  base:16.0, min:21.0, multi:9.0,  nordeste:true,  norte:false, acre:false },
+  'norte':     { label: 'Norte (PA/TO/RO)',                base:18.0, min:25.0, multi:11.0, nordeste:false, norte:true,  acre:false },
+  'norte-ext': { label: 'Norte Extremo (AM/AC/RR/AP)',     base:22.0, min:32.0, multi:14.0, nordeste:false, norte:true,  acre:true  },
+};
+
+const FRETE_GRATIS = 499;
+const VALOR_NEGOC  = 1500;
+const QTD_MAX      = 8;
+const ACRESCIMO    = 1.30;
+
+// ─── ESTADO ──────────────────────────────────────────────────
+let carrinho = [];
+let idSeq = 0;
+
+function calcFrete(gk, rk, qtd) {
+  if (!gk || !rk || qtd < 1 || qtd > QTD_MAX) return null;
+  const g = GRUPOS[gk], r = REGIOES[rk];
+  const peso = g.pc * qtd;
+  return Math.round(Math.max(r.min, r.base + peso * r.multi) * ACRESCIMO);
+}
+
+function moeda(v) {
+  return v !== null ? 'R$ ' + v.toLocaleString('pt-BR') : '—';
+}
+
+// ─── RENDER CARRINHO ─────────────────────────────────────────
+function render() {
+  const rk = document.getElementById('selectRegiao').value;
+  const tbody = document.getElementById('carrinhoBody');
+  const wrap = document.getElementById('carrinhoWrap');
+  const vazia = document.getElementById('msgVazia');
+  const limpar = document.getElementById('btnLimpar');
+
+  // atualizar badges dos cards
+  Object.keys(GRUPOS).forEach(gk => {
+    const total = carrinho.filter(r => r.grupoKey === gk).reduce((s, r) => s + r.qtd, 0);
+    const el = document.getElementById('cnt-' + gk);
+    if (total > 0) { el.textContent = total; el.classList.remove('hidden'); }
+    else el.classList.add('hidden');
+  });
+
+  if (carrinho.length === 0) {
+    vazia.classList.remove('hidden');
+    wrap.classList.add('hidden');
+    limpar.classList.add('hidden');
+    document.getElementById('resumoBox').classList.add('hidden');
+    return;
+  }
+
+  vazia.classList.add('hidden');
+  wrap.classList.remove('hidden');
+  limpar.classList.remove('hidden');
+
+  tbody.innerHTML = '';
+  carrinho.forEach(row => {
+    const frete = rk ? calcFrete(row.grupoKey, rk, row.qtd) : null;
+    const g = GRUPOS[row.grupoKey];
+    const consultar = row.qtd > QTD_MAX;
+
+    const tr = document.createElement('tr');
+    tr.className = 'border-b border-gray-50 row-enter';
+    tr.dataset.id = row.id;
+
+    const badgeClass = { g1:'b-g1', g2:'b-g2', g3:'b-g3', g4:'b-g4', g5:'b-g5' }[row.grupoKey];
+
+    tr.innerHTML = `
+      <td class="py-2 pr-3">
+        <input type="text" value="${row.nome}" placeholder="Nome do produto"
+          class="w-full border border-gray-100 hover:border-gray-300 focus:border-rose-300 rounded-md px-2.5 py-1.5 text-sm bg-transparent focus:outline-none focus:bg-white transition-colors"
+          data-field="nome" data-id="${row.id}" />
+      </td>
+      <td class="py-2 pr-3 whitespace-nowrap">
+        <span class="badge ${badgeClass}">${g.label}</span>
+      </td>
+      <td class="py-2 pr-3">
+        <div class="flex items-center gap-1.5 justify-center">
+          <button class="qty-btn" data-action="dec" data-id="${row.id}">−</button>
+          <span class="w-7 text-center text-sm font-semibold text-gray-800">${row.qtd}</span>
+          <button class="qty-btn" data-action="inc" data-id="${row.id}">+</button>
+        </div>
+      </td>
+      <td class="py-2 pr-2 text-right">
+        ${consultar
+          ? `<span class="text-xs font-semibold text-amber-600">Consultar</span>`
+          : frete !== null
+            ? `<span class="font-bold text-gray-800">${moeda(frete)}</span>`
+            : `<span class="text-xs text-gray-300">—</span>`}
+      </td>
+      <td class="py-2">
+        <button data-del="${row.id}" class="text-gray-200 hover:text-red-400 transition-colors p-0.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  renderResumo();
+}
+
+// ─── RENDER RESUMO E ALERTAS ─────────────────────────────────
+function renderResumo() {
+  const rk = document.getElementById('selectRegiao').value;
+  const valor = parseFloat(document.getElementById('inputValor').value) || 0;
+  const box = document.getElementById('resumoBox');
+
+  if (carrinho.length === 0) { box.classList.add('hidden'); return; }
+  box.classList.remove('hidden');
+
+  let qtdTotal = 0, freteTotal = 0, pesoTotal = 0, temConsultar = false;
+
+  carrinho.forEach(row => {
+    qtdTotal += row.qtd;
+    if (row.qtd > QTD_MAX) { temConsultar = true; return; }
+    if (row.grupoKey && rk) {
+      const f = calcFrete(row.grupoKey, rk, row.qtd);
+      if (f !== null) freteTotal += f;
+      pesoTotal += GRUPOS[row.grupoKey].pc * row.qtd;
+    }
+  });
+
+  document.getElementById('resItens').textContent = qtdTotal + (qtdTotal === 1 ? ' item' : ' itens');
+  document.getElementById('resFrete').textContent  = rk && !temConsultar ? moeda(freteTotal) : '—';
+  document.getElementById('resPeso').textContent   = pesoTotal > 0 ? pesoTotal.toFixed(2) + ' kg' : '—';
+
+  // Alertas
+  const box2 = document.getElementById('alertasBox');
+  box2.innerHTML = '';
+
+  function alerta(icon, texto, cor) {
+    const d = document.createElement('div');
+    d.className = `flex items-start gap-2 px-3 py-2 rounded-lg text-xs ${cor}`;
+    d.innerHTML = `<span class="leading-none mt-0.5">${icon}</span><span>${texto}</span>`;
+    box2.appendChild(d);
+  }
+
+  if (!rk) {
+    alerta('📍', 'Selecione a região de destino para ver o frete estimado.', 'bg-stone-50 text-gray-500 border border-stone-200');
+    return;
+  }
+
+  const reg = REGIOES[rk];
+
+  // negociação
+  if (valor >= VALOR_NEGOC) {
+    alerta('🤝', `Pedido de ${moeda(valor)} — cliente não fechando por desconto? Gere a mensagem abaixo para o gestor.`, 'bg-purple-50 text-purple-700 border border-purple-200 font-medium');
+  }
+
+  // frete grátis
+  const semGratis = reg.nordeste || reg.acre;
+  if (semGratis) {
+    alerta('🚫', `<strong>Sem frete grátis</strong> para ${reg.label} — nenhuma exceção.`, 'bg-red-50 text-red-700 border border-red-200');
+  } else if (valor >= FRETE_GRATIS) {
+    alerta('✅', `Frete grátis disponível (pedido de ${moeda(valor)} ≥ ${moeda(FRETE_GRATIS)}). Aplicar <strong>somente se o cliente pedir</strong>.`, 'bg-green-50 text-green-700 border border-green-200');
+  } else if (valor > 0) {
+    const faltam = FRETE_GRATIS - valor;
+    alerta('💡', `Faltam ${moeda(faltam)} para frete grátis. Frete de ${moeda(freteTotal)} a repassar ao cliente.`, 'bg-amber-50 text-amber-700 border border-amber-200');
+  }
+
+  // consultar time
+  if (temConsultar || qtdTotal > QTD_MAX) {
+    alerta('📦', `Pedido com mais de ${QTD_MAX} itens — consultar time interno para cotação especial.`, 'bg-amber-50 text-amber-700 border border-amber-200');
+  }
+
+  // norte
+  if (reg.norte) {
+    alerta('🗺️', `Região ${reg.label}: avaliar custo-benefício de absorver o frete antes de repassar.`, 'bg-slate-50 text-slate-600 border border-slate-200');
+  }
+}
+
+// ─── GERAR MENSAGEM ──────────────────────────────────────────
+function gerarMensagem() {
+  const rk = document.getElementById('selectRegiao').value;
+  const valor = parseFloat(document.getElementById('inputValor').value) || 0;
+  const reg = rk ? REGIOES[rk] : null;
+
+  let qtdTotal = 0, freteTotal = 0;
+  let linhas = [];
+
+  carrinho.forEach(row => {
+    const g = GRUPOS[row.grupoKey];
+    const frete = rk ? calcFrete(row.grupoKey, rk, row.qtd) : null;
+    qtdTotal += row.qtd;
+    if (frete !== null) freteTotal += frete;
+    const nome = row.nome.trim() ? row.nome.trim() : g.label;
+    linhas.push(`• ${nome} (${g.label}) × ${row.qtd} → ${frete !== null ? moeda(frete) : 'a cotar'}`);
+  });
+
+  const dataHora = new Date().toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+
+  let alertas = [];
+  if (reg) {
+    if (reg.nordeste || reg.acre) alertas.push('⚠️ Região sem frete grátis (Nordeste/Acre)');
+    if (qtdTotal > QTD_MAX) alertas.push('⚠️ Pedido acima de 8 itens — cotação especial necessária');
+    if (reg.norte) alertas.push('⚠️ Região Norte — avaliar absorção do frete');
+  }
+  if (valor >= VALOR_NEGOC) alertas.push(`🤝 Pedido acima de R$ 1.500 — cliente não fechando por desconto`);
+
+  const msg = [
+    `📋 SOLICITAÇÃO DE NEGOCIAÇÃO ESPECIAL`,
+    `Data: ${dataHora}`,
+    `─────────────────────────────────`,
+    `Região: ${reg ? reg.label : 'não informada'}`,
+    valor > 0 ? `Valor do pedido: ${moeda(valor)}` : '',
+    ``,
+    `Itens do pedido:`,
+    ...linhas,
+    ``,
+    `Total: ${qtdTotal} ${qtdTotal === 1 ? 'item' : 'itens'} | Frete estimado: ${moeda(freteTotal)}`,
+    alertas.length ? `\n${alertas.join('\n')}` : '',
+    `\nSolicito análise de condição especial para este pedido.`,
+  ].filter(l => l !== '').join('\n');
+
+  document.getElementById('msgTexto').value = msg;
+  document.getElementById('modal-overlay').classList.add('open');
+  document.getElementById('btnCopiarTxt').textContent = 'Copiar mensagem';
+}
+
+// ─── EVENTOS ─────────────────────────────────────────────────
+
+// Adicionar grupo ao carrinho
+document.querySelectorAll('.group-card').forEach(card => {
+  card.addEventListener('click', () => {
+    const gk = card.dataset.grupo;
+    carrinho.push({ id: idSeq++, nome: '', grupoKey: gk, qtd: 1 });
+    render();
+    // scroll para o carrinho
+    document.getElementById('carrinhoWrap').scrollIntoView({ behavior:'smooth', block:'nearest' });
+  });
+});
+
+// Carrinho: nome / qtd / remover
+document.getElementById('carrinhoBody').addEventListener('input', e => {
+  const field = e.target.dataset.field;
+  const id = parseInt(e.target.dataset.id);
+  if (!field || isNaN(id)) return;
+  const row = carrinho.find(r => r.id === id);
+  if (!row) return;
+  if (field === 'nome') row.nome = e.target.value;
+  render();
+});
+
+document.getElementById('carrinhoBody').addEventListener('click', e => {
+  // remover
+  const del = e.target.closest('[data-del]');
+  if (del) {
+    carrinho = carrinho.filter(r => r.id !== parseInt(del.dataset.del));
+    render();
+    return;
+  }
+  // +/-
+  const btn = e.target.closest('[data-action]');
+  if (btn) {
+    const id = parseInt(btn.dataset.id);
+    const row = carrinho.find(r => r.id === id);
+    if (!row) return;
+    if (btn.dataset.action === 'inc') row.qtd = Math.min(15, row.qtd + 1);
+    if (btn.dataset.action === 'dec') row.qtd = Math.max(1, row.qtd - 1);
+    render();
+  }
+});
+
+// Limpar carrinho
+document.getElementById('btnLimpar').addEventListener('click', () => {
+  carrinho = [];
+  render();
+});
+
+// Atualiza ao mudar região/valor
+document.getElementById('selectRegiao').addEventListener('change', render);
+document.getElementById('inputValor').addEventListener('input', render);
+
+// Modal
+document.getElementById('btnGerarMsg').addEventListener('click', gerarMensagem);
+document.getElementById('modalFechar').addEventListener('click', () => document.getElementById('modal-overlay').classList.remove('open'));
+document.getElementById('modalFechar2').addEventListener('click', () => document.getElementById('modal-overlay').classList.remove('open'));
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-overlay'))
+    document.getElementById('modal-overlay').classList.remove('open');
+});
+
+// Copiar
+document.getElementById('btnCopiar').addEventListener('click', () => {
+  navigator.clipboard.writeText(document.getElementById('msgTexto').value).then(() => {
+    document.getElementById('btnCopiarTxt').textContent = '✓ Copiado!';
+    setTimeout(() => document.getElementById('btnCopiarTxt').textContent = 'Copiar mensagem', 2000);
+  });
+});
+</script>
+
+</body>
+</html>
