@@ -288,7 +288,17 @@
     <div class="card">
       <div style="padding:18px 20px;">
         <p class="section-label" style="margin-bottom:14px;">Configurar cotação</p>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+        <div class="config-grid" style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:14px;">
+          <div>
+            <label class="label-sm">Nome da cliente</label>
+            <input id="inputNomeCliente" type="text" placeholder="Ex: Ana Paula"
+              class="field-base" />
+          </div>
+          <div>
+            <label class="label-sm">Telefone / WhatsApp</label>
+            <input id="inputTelefone" type="tel" placeholder="(62) 9 0000-0000"
+              class="field-base" />
+          </div>
           <div>
             <label class="label-sm">Região de destino</label>
             <select id="selectRegiao" class="field-base" style="appearance:none; background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%235a7a65%22><path stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%222%22 d=%22M19 9l-7 7-7-7%22/></svg>'); background-repeat:no-repeat; background-position:right 10px center; background-size:16px; padding-right:36px;">
@@ -594,6 +604,10 @@
 @media (max-width: 860px) {
   main { grid-template-columns: 1fr !important; }
   #grupoCards { grid-template-columns: repeat(2, 1fr) !important; }
+  .config-grid { grid-template-columns: 1fr 1fr !important; }
+}
+@media (max-width: 560px) {
+  .config-grid { grid-template-columns: 1fr !important; }
 }
 @media (max-width: 480px) {
   #grupoCards { grid-template-columns: 1fr !important; }
@@ -765,6 +779,8 @@ function gerarMensagem() {
   const rk = document.getElementById('selectRegiao').value;
   const valor = parseFloat(document.getElementById('inputValor').value) || 0;
   const reg = rk ? REGIOES[rk] : null;
+  const nomeCliente = document.getElementById('inputNomeCliente').value.trim();
+  const telefone    = document.getElementById('inputTelefone').value.trim();
   let qtdTotal = 0, freteTotal = 0;
   const linhas = carrinho.map(row => {
     const g = GRUPOS[row.grupoKey];
@@ -786,6 +802,9 @@ function gerarMensagem() {
     '📋 SOLICITAÇÃO DE NEGOCIAÇÃO ESPECIAL',
     `Data: ${dt}`,
     '─────────────────────────────────────',
+    nomeCliente ? `Cliente: ${nomeCliente}` : null,
+    telefone    ? `Telefone: ${telefone}` : null,
+    (nomeCliente || telefone) ? '─────────────────────────────────────' : null,
     `Região: ${reg ? reg.label : 'não informada'}`,
     valor > 0 ? `Valor do pedido: ${moeda(valor)}` : null,
     '',
